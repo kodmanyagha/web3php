@@ -12,7 +12,7 @@
 namespace Kdm;
 
 use Exception;
-use Kdm\Lib\OfflineTx\Transaction;
+use Kdm\Lib\OfflineTx\EIP1559Transaction;
 use Kdm\Providers\Provider;
 use Kdm\Providers\HttpProvider;
 use Kdm\RequestManagers\HttpRequestManager;
@@ -21,6 +21,7 @@ use Kdm\RequestManagers\HttpRequestManager;
  * @method protocolVersion(callable $callback)
  * @method syncing(callable $callback)
  * @method coinbase(callable $callback)
+ * @method chainId(callable $callback)
  * @method mining(callable $callback)
  * @method hashrate(callable $callback)
  * @method gasPrice(callable $callback)
@@ -83,7 +84,7 @@ class Eth
      * @var array
      */
     private $allowedMethods = [
-        'eth_protocolVersion', 'eth_syncing', 'eth_coinbase', 'eth_mining', 'eth_hashrate', 'eth_gasPrice',
+        'eth_protocolVersion', 'eth_syncing', 'eth_coinbase', 'eth_chainId', 'eth_mining', 'eth_hashrate', 'eth_gasPrice',
         'eth_accounts', 'eth_blockNumber', 'eth_getBalance', 'eth_getStorageAt', 'eth_getTransactionCount',
         'eth_getBlockTransactionCountByHash', 'eth_getBlockTransactionCountByNumber', 'eth_getUncleCountByBlockHash',
         'eth_getUncleCountByBlockNumber', 'eth_getUncleByBlockHashAndIndex', 'eth_getUncleByBlockNumberAndIndex',
@@ -123,20 +124,14 @@ class Eth
      */
     public function sendAuto(
         string $privateKey,
-        mixed $gasPrice,
-        mixed $gasLimit,
         string $to,
         mixed $value,
     ): string
     {
         $txid = 1;
         for ($i = 0; $i < 5; $i++) {
-            echo '>>> TXID ' . $txid;
-
             $txid = $this->_sendAuto(
                 $privateKey,
-                $gasPrice,
-                $gasLimit,
                 $to,
                 $value,
                 $txid
@@ -154,11 +149,14 @@ class Eth
     }
 
     /**
+     *
      * @param string $privateKey
-     * @param mixed $gasPrice
-     * @param mixed $gasLimit
      * @param string $to
      * @param mixed $value
+     * @param string $maxPriorityFeePerGas
+     * @param string $maxFeePerGas
+     * @param string $gasLimit
+     * @param string $data
      * @param int $nonce
      *
      * @return string|int|mixed
@@ -166,18 +164,29 @@ class Eth
      */
     public function _sendAuto(
         string $privateKey,
-        mixed $gasPrice,
-        mixed $gasLimit,
         string $to,
-        mixed $value,
-        int $nonce = 1
-    ): mixed
+        $value,
+        int $nonce = 1,
+        $maxPriorityFeePerGas = 'b2d05e00',
+        $maxFeePerGas = '6fc23ac00',
+        $gasLimit = '5208',
+        $data = ''
+    )
     {
         $self    = &$this;
         $txid    = '';
         $txError = null;
 
-        $tx    = new Transaction('0x' . Utils::toHex($nonce), $gasPrice, $gasLimit, $to, $value);
+        $tx = new EIP1559Transaction(
+            '0x' . Utils::toHex($nonce),
+            $maxPriorityFeePerGas,
+            $maxFeePerGas,
+            $gasLimit,
+            $to,
+            $value,
+            $data
+        );
+
         $rawTx = '0x' . $tx->getRaw($privateKey);
 
         $self->sendRawTransaction(
