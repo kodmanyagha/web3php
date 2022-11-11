@@ -183,7 +183,7 @@ class Eth
         $txid    = '';
         $txError = null;
 
-        $tx    = new Transaction($nonce, $gasPrice, $gasLimit, $to, $value);
+        $tx    = new Transaction(Utils::toHex($nonce), $gasPrice, $gasLimit, $to, $value);
         $rawTx = '0x' . $tx->getRaw($privateKey);
 
         $self->sendRawTransaction(
