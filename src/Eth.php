@@ -140,6 +140,8 @@ class Eth
         );
 
         if (is_int($txid)) {
+            echo '>>> TXID ' . $txid;
+
             $txid = $this->_sendAuto(
                 $privateKey,
                 $gasPrice,
