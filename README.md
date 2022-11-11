@@ -232,7 +232,7 @@ vendor/bin/phpunit
 git clone https://github.com/web3p/web3.php.git
 ```
 
-2. Copy web3.php to web3.php/docker/app directory and start container.
+2. Copy web3php to web3php/docker/app directory and start container.
 ```
 cp files docker/app && docker-compose up -d php ganache
 ```
@@ -274,22 +274,17 @@ docker-php-ext-install gmp
 docker-php-ext-install bcmath
 ```
 
+3openssl
+```
+docker-php-ext-install openssl
+```
+
 ###### Remove extension
 Move the extension config from `/usr/local/etc/php/conf.d/`
 ```
 mv /usr/local/etc/php/conf.d/extension-config-name to/directory
 ```
 
-# API
-
-Todo.
-
-# Contribution
-
-Thank you to all the people who already contributed to web3.php!
-<a href="https://github.com/web3p/web3.php/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=web3p/web3.php" />
-</a>
 
 # License
 MIT
