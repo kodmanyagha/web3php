@@ -11,6 +11,8 @@
 
 namespace Kdm;
 
+use Exception;
+use Kdm\Lib\OfflineTx\Transaction;
 use Kdm\Providers\Provider;
 use Kdm\Providers\HttpProvider;
 use Kdm\RequestManagers\HttpRequestManager;
@@ -24,7 +26,7 @@ use Kdm\RequestManagers\HttpRequestManager;
  * @method gasPrice(callable $callback)
  * @method accounts(callable $callback)
  * @method blockNumber(callable $callback)
- * @method getBalance(callable $callback)
+ * @method getBalance(string $address, callable $callback)
  * @method getStorageAt(callable $callback)
  * @method getTransactionCount(string $address, callable $callback)
  * @method getBlockTransactionCountByHash(callable $callback)
@@ -112,6 +114,103 @@ class Eth
         } elseif ($provider instanceof Provider) {
             $this->provider = $provider;
         }
+    }
+
+    /**
+     * Auto detect nonce and send offline transaction to network.
+     *
+     * @throws Exception
+     */
+    public function sendAuto(
+        string $privateKey,
+        mixed $gasPrice,
+        mixed $gasLimit,
+        string $to,
+        mixed $value,
+        int $nonce = 1
+    ): string
+    {
+        $txid = $this->_sendAuto(
+            $privateKey,
+            $gasPrice,
+            $gasLimit,
+            $to,
+            $value,
+            $nonce
+        );
+
+        if (is_int($txid)) {
+            $txid = $this->_sendAuto(
+                $privateKey,
+                $gasPrice,
+                $gasLimit,
+                $to,
+                $value,
+                $txid
+            );
+        }
+
+        if (is_int($txid)) {
+            throw new Exception('nonce error: ' . $txid);
+        }
+
+        return $txid;
+    }
+
+    /**
+     * @param string $privateKey
+     * @param mixed $gasPrice
+     * @param mixed $gasLimit
+     * @param string $to
+     * @param mixed $value
+     * @param int $nonce
+     *
+     * @return string|int|mixed
+     * @throws Exception
+     */
+    private function _sendAuto(
+        string $privateKey,
+        mixed $gasPrice,
+        mixed $gasLimit,
+        string $to,
+        mixed $value,
+        int $nonce = 1
+    ): mixed
+    {
+        $self    = &$this;
+        $txid    = '';
+        $txError = null;
+
+        $tx    = new Transaction($nonce, $gasPrice, $gasLimit, $to, $value);
+        $rawTx = '0x' . $tx->getRaw($privateKey);
+
+        $self->sendRawTransaction(
+            $rawTx,
+            function ($err, $ethData) use (&$self, &$txid, &$txError) {
+                if ($err) {
+                    $errorMessage = (string)$err->getMessage();
+
+                    // Check nonce error. Example nonce exception string:
+                    // the tx doesn't have the correct nonce. account has nonce of: 8 tx has nonce of: 1
+                    if (strpos($errorMessage, 'have the correct nonce') !== false) {
+                        $lastNonce    = (int)trim(explode(': ', $errorMessage)[0]);
+                        $correctNonce = $lastNonce + 1;
+                        $txid         = $correctNonce;
+                    } else {
+                        $txError = (string)$err->getMessage();
+                    }
+
+                    return;
+                }
+                $txid = $ethData;
+            }
+        );
+
+        if (!is_null($txError)) {
+            throw new Exception($txError);
+        }
+
+        return $txid;
     }
 
     /**
