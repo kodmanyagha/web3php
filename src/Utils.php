@@ -568,11 +568,11 @@ class Utils
     /**
      * Return private key and address in array. Usage:
      *
-     *     [$privateKey, $address] = createWallet()
+     *     [$privateKey, $address] = self::createWallet()
      *
      * @throws Exception
      */
-    public function createWallet(): array
+    public static function createWallet(): array
     {
         $config = [
             'private_key_type' => OPENSSL_KEYTYPE_EC,
