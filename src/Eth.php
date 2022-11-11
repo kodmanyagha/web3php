@@ -17,6 +17,7 @@ use Kdm\Lib\OfflineTx\Transaction;
 use Kdm\Providers\Provider;
 use Kdm\Providers\HttpProvider;
 use Kdm\RequestManagers\HttpRequestManager;
+use phpseclib\Math\BigInteger;
 
 /**
  * @method protocolVersion(callable $callback)
@@ -125,22 +126,36 @@ class Eth
      */
     public function sendAuto(
         string $privateKey,
+        string $from,
         string $to,
         mixed $value,
     ): string
     {
-        $txid = 1;
-        for ($i = 0; $i < 5; $i++) {
-            $txid = $this->_sendAuto(
-                $privateKey,
-                $to,
-                $value,
-                $txid
-            );
-            if (is_string($txid)) {
-                break;
+        $self  = &$this;
+        $nonce = 1;
+
+        // buraya dön
+
+        $self->getTransactionCount(
+            $from,
+            'latest',
+            function ($err, BigInteger $ethData) use (&$self, &$nonce) {
+                if ($err) {
+                    return;
+                }
+                //print_r((int)$ethData->value);exit;
+
+                $nonce = (int)$ethData->value + 1;
             }
-        }
+        );
+
+        $txid = $this->_sendAuto(
+            $privateKey,
+            $from,
+            $to,
+            $value,
+            $nonce
+        );
 
         if (is_int($txid)) {
             throw new Exception('nonce error: ' . $txid);
@@ -163,9 +178,10 @@ class Eth
      */
     public function _sendAuto(
         string $privateKey,
+        string $from,
         string $to,
         $value,
-        int $nonce = 1111111111111,
+        int $nonce = 1,
         $gasPrice = '',
         $gasLimit = '',
         $data = ''
@@ -195,7 +211,7 @@ class Eth
 
         $self->sendRawTransaction(
             $rawTx,
-            function ($err, $ethData) use (&$self, &$txid, &$txError) {
+            function ($err, $ethData) use (&$self, &$txid, &$txError, &$nonce) {
                 if ($err) {
                     $errorMessage = (string)$err->getMessage();
 
@@ -203,8 +219,10 @@ class Eth
                     // the tx doesn't have the correct nonce. account has nonce of: 8 tx has nonce of: 1
                     if (strpos($errorMessage, 'have the correct nonce') !== false) {
                         $txid = (int)trim(explode(': ', $errorMessage)[1]);
+                    } elseif ($errorMessage == 'already known') {
+                        $txid = $nonce + 1;
                     } else {
-                        $txError = (string)$err->getMessage();
+                        $txError = (string)$err->getMessage() . ' Nonce: ' . $nonce;
                     }
 
                     return;
@@ -261,7 +279,8 @@ class Eth
                 $methodObject = $this->methods[$method];
             }
             if ($methodObject->validate($arguments)) {
-                $inputs                  = $methodObject->transform($arguments, $methodObject->inputFormatters);
+                $inputs = $methodObject->transform($arguments, $methodObject->inputFormatters);
+
                 $methodObject->arguments = $inputs;
                 $this->provider->send($methodObject, $callback);
             }
