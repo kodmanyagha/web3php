@@ -19,9 +19,9 @@ use Kdm\RequestManagers\HttpRequestManager;
  * @method listAccounts(callable $callback)
  * @method newAccount(callable $callback)
  * @method unlockAccount(callable $callback)
- * @method lockAccount(callable $callback),
+ * @method lockAccount(callable $callback)
  * @method sendTransaction(callable $callback)
- * @method importRawKey(callable $callback)
+ * @method importRawKey(string $address, string $password, callable $callback)
  */
 class Personal
 {
