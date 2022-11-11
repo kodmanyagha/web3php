@@ -31,7 +31,7 @@ use phpseclib\Math\BigInteger;
  * @method blockNumber(callable $callback)
  * @method getBalance(string $address, string $type, callable $callback)
  * @method getStorageAt(callable $callback)
- * @method getTransactionCount(string $address, callable $callback)
+ * @method getTransactionCount(string $address, string $type, callable $callback)
  * @method getBlockTransactionCountByHash(callable $callback)
  * @method getBlockTransactionCountByNumber(callable $callback)
  * @method getUncleCountByBlockHash(callable $callback)
@@ -134,8 +134,6 @@ class Eth
         $self  = &$this;
         $nonce = 1;
 
-        // buraya dön
-
         $self->getTransactionCount(
             $from,
             'latest',
@@ -151,7 +149,6 @@ class Eth
 
         $txid = $this->_sendAuto(
             $privateKey,
-            $from,
             $to,
             $value,
             $nonce
@@ -178,7 +175,6 @@ class Eth
      */
     public function _sendAuto(
         string $privateKey,
-        string $from,
         string $to,
         $value,
         int $nonce = 1,
@@ -204,7 +200,7 @@ class Eth
         );
 
         $gasPrice = strlen($gasPrice) == 0 ? Utils::toWei('50', 'gwei') : $gasPrice;
-        $gasLimit = strlen($gasLimit) == 0 ? Utils::toWei('21000', 'wei') : $gasLimit;
+        $gasLimit = strlen($gasLimit) == 0 ? Utils::toWei('1000000000', 'wei') : $gasLimit;
 
         $tx    = new Transaction($nonce, $gasPrice, $gasLimit, $to, $value);
         $rawTx = '0x' . $tx->getRaw($privateKey, (int)Utils::hexToBin($chainId));
@@ -271,7 +267,6 @@ class Eth
                 }
             }
             if (!array_key_exists($method, $this->methods)) {
-                // new the method
                 $methodClass            = sprintf("\Kdm\Methods\%s\%s", ucfirst($class[1]), ucfirst($name));
                 $methodObject           = new $methodClass($method, $arguments);
                 $this->methods[$method] = $methodObject;
