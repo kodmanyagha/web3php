@@ -26,7 +26,7 @@ use Kdm\RequestManagers\HttpRequestManager;
  * @method gasPrice(callable $callback)
  * @method accounts(callable $callback)
  * @method blockNumber(callable $callback)
- * @method getBalance(string $address, callable $callback)
+ * @method getBalance(string $address, string $type, callable $callback)
  * @method getStorageAt(callable $callback)
  * @method getTransactionCount(string $address, callable $callback)
  * @method getBlockTransactionCountByHash(callable $callback)
