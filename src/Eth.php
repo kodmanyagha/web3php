@@ -127,7 +127,6 @@ class Eth
         mixed $gasLimit,
         string $to,
         mixed $value,
-        int $nonce = 1
     ): string
     {
         $txid = $this->_sendAuto(
@@ -136,7 +135,7 @@ class Eth
             $gasLimit,
             $to,
             $value,
-            $nonce
+            1
         );
 
         if (is_int($txid)) {
@@ -198,6 +197,7 @@ class Eth
                         $lastNonce    = (int)trim(explode(': ', $errorMessage)[1]);
                         $correctNonce = $lastNonce + 1;
                         $txid         = $correctNonce;
+                        return;
                     } else {
                         $txError = (string)$err->getMessage();
                     }
