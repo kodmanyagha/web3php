@@ -193,7 +193,7 @@ class Eth
                     // Check nonce error. Example nonce exception string:
                     // the tx doesn't have the correct nonce. account has nonce of: 8 tx has nonce of: 1
                     if (strpos($errorMessage, 'have the correct nonce') !== false) {
-                        $lastNonce    = (int)trim(explode(': ', $errorMessage)[0]);
+                        $lastNonce    = (int)trim(explode(': ', $errorMessage)[1]);
                         $correctNonce = $lastNonce + 1;
                         $txid         = $correctNonce;
                     } else {
