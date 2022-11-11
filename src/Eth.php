@@ -13,6 +13,7 @@ namespace Kdm;
 
 use Exception;
 use Kdm\Lib\OfflineTx\EIP1559Transaction;
+use Kdm\Lib\OfflineTx\Transaction;
 use Kdm\Providers\Provider;
 use Kdm\Providers\HttpProvider;
 use Kdm\RequestManagers\HttpRequestManager;
@@ -149,12 +150,10 @@ class Eth
     }
 
     /**
-     *
      * @param string $privateKey
      * @param string $to
      * @param mixed $value
-     * @param string $maxPriorityFeePerGas
-     * @param string $maxFeePerGas
+     * @param string $gasPrice
      * @param string $gasLimit
      * @param string $data
      * @param int $nonce
@@ -166,28 +165,33 @@ class Eth
         string $privateKey,
         string $to,
         $value,
-        int $nonce = 1,
-        $maxPriorityFeePerGas = 'b2d05e00',
-        $maxFeePerGas = '6fc23ac00',
-        $gasLimit = '5208',
+        int $nonce = 1111111111111,
+        $gasPrice = '',
+        $gasLimit = '',
         $data = ''
     )
     {
         $self    = &$this;
         $txid    = '';
         $txError = null;
+        $chainId = 1;
 
-        $tx = new EIP1559Transaction(
-            '0x' . Utils::toHex($nonce),
-            $maxPriorityFeePerGas,
-            $maxFeePerGas,
-            $gasLimit,
-            $to,
-            $value,
-            $data
+        $self->chainId(
+            function ($err, $ethData) use (&$self, &$chainId) {
+                if ($err) {
+                    $chainId = $err;
+                    return;
+                }
+
+                $chainId = $ethData;
+            }
         );
 
-        $rawTx = '0x' . $tx->getRaw($privateKey);
+        $gasPrice = strlen($gasPrice) == 0 ? Utils::toWei('50', 'gwei') : $gasPrice;
+        $gasLimit = strlen($gasLimit) == 0 ? Utils::toWei('21000', 'wei') : $gasLimit;
+
+        $tx    = new Transaction($nonce, $gasPrice, $gasLimit, $to, $value);
+        $rawTx = '0x' . $tx->getRaw($privateKey, (int)Utils::hexToBin($chainId));
 
         $self->sendRawTransaction(
             $rawTx,
