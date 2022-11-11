@@ -164,7 +164,7 @@ class Eth
      * @return string|int|mixed
      * @throws Exception
      */
-    private function _sendAuto(
+    public function _sendAuto(
         string $privateKey,
         mixed $gasPrice,
         mixed $gasLimit,
