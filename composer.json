@@ -3,7 +3,7 @@
     "description": "Ethereum web3 interface.",
     "type": "library",
     "license": "MIT",
-    "version": "1.0.9",
+    "version": "1.0.10-dev",
     "authors": [
         {
             "name": "Emir Bugra Koksalan",
