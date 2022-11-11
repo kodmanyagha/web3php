@@ -129,16 +129,8 @@ class Eth
         mixed $value,
     ): string
     {
-        $txid = $this->_sendAuto(
-            $privateKey,
-            $gasPrice,
-            $gasLimit,
-            $to,
-            $value,
-            1
-        );
-
-        if (is_int($txid)) {
+        $txid = 1;
+        for ($i = 0; $i < 5; $i++) {
             echo '>>> TXID ' . $txid;
 
             $txid = $this->_sendAuto(
@@ -149,6 +141,9 @@ class Eth
                 $value,
                 $txid
             );
+            if (is_string($txid)) {
+                break;
+            }
         }
 
         if (is_int($txid)) {
@@ -197,13 +192,13 @@ class Eth
                         $lastNonce    = (int)trim(explode(': ', $errorMessage)[1]);
                         $correctNonce = $lastNonce + 1;
                         $txid         = $correctNonce;
-                        return;
                     } else {
                         $txError = (string)$err->getMessage();
                     }
 
                     return;
                 }
+
                 $txid = $ethData;
             }
         );
