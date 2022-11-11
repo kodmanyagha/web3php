@@ -26,7 +26,7 @@ use Kdm\RequestManagers\HttpRequestManager;
  * @method blockNumber(callable $callback)
  * @method getBalance(callable $callback)
  * @method getStorageAt(callable $callback)
- * @method getTransactionCount(callable $callback)
+ * @method getTransactionCount(string $address, callable $callback)
  * @method getBlockTransactionCountByHash(callable $callback)
  * @method getBlockTransactionCountByNumber(callable $callback)
  * @method getUncleCountByBlockHash(callable $callback)
