@@ -11,6 +11,7 @@
 
 namespace Kdm;
 
+use Cassandra\Bigint;
 use Exception;
 use Kdm\Lib\OfflineTx\EIP1559Transaction;
 use Kdm\Lib\OfflineTx\Transaction;
@@ -128,7 +129,8 @@ class Eth
         string $privateKey,
         string $from,
         string $to,
-        mixed $value,
+        float $value,
+        mixed $fee
     ): string
     {
         $self  = &$this;
@@ -141,16 +143,15 @@ class Eth
                 if ($err) {
                     return;
                 }
-                //print_r((int)$ethData->value);exit;
-
-                $nonce = (int)$ethData->value + 1;
+                $nonce = (int)$ethData->value;
             }
         );
 
         $txid = $this->_sendAuto(
             $privateKey,
             $to,
-            $value,
+            Utils::toWei(number_format($value, 8, '.', ''), 'ether'),
+            $fee,
             $nonce
         );
 
@@ -164,11 +165,10 @@ class Eth
     /**
      * @param string $privateKey
      * @param string $to
-     * @param mixed $value
-     * @param string $gasPrice
-     * @param string $gasLimit
-     * @param string $data
+     * @param BigInteger $valueWei
+     * @param string|float $fee
      * @param int $nonce
+     * @param string $data
      *
      * @return string|int|mixed
      * @throws Exception
@@ -176,17 +176,25 @@ class Eth
     public function _sendAuto(
         string $privateKey,
         string $to,
-        $value,
-        int $nonce = 1,
-        $gasPrice = '',
-        $gasLimit = '',
+        BigInteger $valueWei,
+        $fee = 'normal',
+        int $nonce = 0,
         $data = ''
     )
     {
-        $self    = &$this;
-        $txid    = '';
-        $txError = null;
-        $chainId = 1;
+        if (is_string($fee) && !in_array($fee, ['normal', 'fast', 'fastest'])) {
+            $fee = 'normal';
+        } elseif (is_float($fee) && $fee <= 0) {
+            throw new Exception('Fee must greater then zero.');
+        }
+
+        $self        = &$this;
+        $txid        = '';
+        $txError     = null;
+        $chainId     = 1;
+        $minGasPrice = 0;
+        $gasPrice    = 0;
+        $gasLimit    = 21000;
 
         $self->chainId(
             function ($err, $ethData) use (&$self, &$chainId) {
@@ -199,10 +207,48 @@ class Eth
             }
         );
 
-        $gasPrice = strlen($gasPrice) == 0 ? Utils::toWei('50', 'gwei') : $gasPrice;
-        $gasLimit = strlen($gasLimit) == 0 ? Utils::toWei('1000000000', 'wei') : $gasLimit;
+        $self->gasPrice(
+            function ($err, BigInteger $ethData) use (&$self, &$minGasPrice) {
+                if ($err) {
+                    return;
+                }
 
-        $tx    = new Transaction($nonce, $gasPrice, $gasLimit, $to, $value);
+                $minGasPrice = hexdec($ethData->toHex());
+            }
+        );
+
+        if (is_string($fee)) {
+            if ($fee == 'normal') {
+                $gasPrice = $minGasPrice * 1;
+            } elseif ($fee == 'fast') {
+                $gasPrice = $minGasPrice * 2;
+            } elseif ($fee == 'fastest') {
+                $gasPrice = $minGasPrice * 3;
+            }
+
+            $gasPrice = Utils::toWei(number_format($gasPrice, 0, '.', ''), 'wei');
+        } else {
+            $gasPrice = Utils::toWei(number_format($fee / $gasLimit, 0, '.', ''), 'ether');
+
+            if (intval($gasPrice) < $minGasPrice) {
+                throw new Exception(
+                    'Fee too low. Lowest fee is: '
+                    . Utils::toEther(number_format($minGasPrice * $gasLimit, 0, '.', ''), 'wei')
+                    . ' ETH'
+                );
+            }
+        }
+
+        $gasLimit = new BigInteger($gasLimit);
+
+        $tx = new Transaction(
+            $nonce,
+            $gasPrice->toHex(),
+            $gasLimit->toHex(),
+            $to,
+            $valueWei->toHex()
+        );
+
         $rawTx = '0x' . $tx->getRaw($privateKey, (int)Utils::hexToBin($chainId));
 
         $self->sendRawTransaction(
