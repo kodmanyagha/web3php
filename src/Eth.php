@@ -133,7 +133,8 @@ class Eth
         mixed $fee
     ): string
     {
-        $self  = &$this;
+        $self = &$this;
+        // nonce have to start from zero.
         $nonce = 0;
 
         $self->getTransactionCount(
