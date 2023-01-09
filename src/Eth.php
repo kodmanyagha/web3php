@@ -134,7 +134,7 @@ class Eth
     ): string
     {
         $self  = &$this;
-        $nonce = 1;
+        $nonce = 0;
 
         $self->getTransactionCount(
             $from,
@@ -196,26 +196,20 @@ class Eth
         $gasPrice    = 0;
         $gasLimit    = 21000;
 
-        $self->chainId(
-            function ($err, $ethData) use (&$self, &$chainId) {
-                if ($err) {
-                    $chainId = $err;
-                    return;
-                }
-
-                $chainId = $ethData;
+        $self->chainId(function ($err, $ethData) use (&$self, &$chainId) {
+            if ($err) {
+                $chainId = $err;
+                return;
             }
-        );
+            $chainId = $ethData;
+        });
 
-        $self->gasPrice(
-            function ($err, BigInteger $ethData) use (&$self, &$minGasPrice) {
-                if ($err) {
-                    return;
-                }
-
-                $minGasPrice = hexdec($ethData->toHex());
+        $self->gasPrice(function ($err, BigInteger $ethData) use (&$self, &$minGasPrice) {
+            if ($err) {
+                return;
             }
-        );
+            $minGasPrice = hexdec($ethData->toHex());
+        });
 
         if (is_string($fee)) {
             if ($fee == 'normal') {
