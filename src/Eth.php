@@ -130,23 +130,11 @@ class Eth
         string $from,
         string $to,
         float $value,
-        mixed $fee
+        mixed $fee,
+        $nonce = 0 // nonce have to start from zero.
     ): string
     {
         $self = &$this;
-        // nonce have to start from zero.
-        $nonce = 0;
-
-        $self->getTransactionCount(
-            $from,
-            'latest',
-            function ($err, BigInteger $ethData) use (&$self, &$nonce) {
-                if ($err) {
-                    return;
-                }
-                $nonce = (int)$ethData->value;
-            }
-        );
 
         $txid = $this->_sendAuto(
             $privateKey,
@@ -251,18 +239,7 @@ class Eth
             function ($err, $ethData) use (&$self, &$txid, &$txError, &$nonce) {
                 if ($err) {
                     $errorMessage = (string)$err->getMessage();
-
-                    // Check nonce error. Example nonce exception string:
-                    // the tx doesn't have the correct nonce. account has nonce of: 8 tx has nonce of: 1
-                    if (strpos($errorMessage, 'have the correct nonce') !== false) {
-                        $txid = (int)trim(explode(': ', $errorMessage)[1]);
-                    } elseif ($errorMessage == 'already known') {
-                        $txid = $nonce + 1;
-                    } else {
-                        $txError = (string)$err->getMessage() . ' Nonce: ' . $nonce;
-                    }
-
-                    return;
+                    throw new Exception($errorMessage . ' current nonce: ' . $nonce);
                 }
 
                 $txid = $ethData;
