@@ -131,17 +131,18 @@ class Eth
         string $to,
         float $value,
         mixed $fee,
-        $nonce = 0 // nonce have to start from zero.
+        $nonce
     ): string
     {
         $self = &$this;
+
 
         $txid = $this->_sendAuto(
             $privateKey,
             $to,
             Utils::toWei(number_format($value, 8, '.', ''), 'ether'),
+            $nonce,
             $fee,
-            $nonce
         );
 
         if (is_int($txid)) {
@@ -166,8 +167,8 @@ class Eth
         string $privateKey,
         string $to,
         BigInteger $valueWei,
+        int $nonce,
         $fee = 'normal',
-        int $nonce = 0,
         $data = ''
     )
     {
@@ -184,6 +185,8 @@ class Eth
         $minGasPrice = 0;
         $gasPrice    = 0;
         $gasLimit    = 21000;
+
+
 
         $self->chainId(function ($err, $ethData) use (&$self, &$chainId) {
             if ($err) {
@@ -225,7 +228,7 @@ class Eth
         $gasLimit = new BigInteger($gasLimit);
 
         $tx = new Transaction(
-            $nonce,
+            dechex($nonce),
             $gasPrice->toHex(),
             $gasLimit->toHex(),
             $to,
